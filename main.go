@@ -29,11 +29,11 @@ func main() {
 	)
 
 	// GET /api/v1/hello
-	apiv1.Get("/record", recordHandler.GetRecords)
-	apiv1.Get("/record/:id", recordHandler.GetRecordByID)
-	apiv1.Post("/record", recordHandler.InsertRecord)
-	apiv1.Put("/record/:id", recordHandler.UpdateRecord)
-	apiv1.Delete("/record/:id", recordHandler.DeleteRecord)
+	apiv1.Get("/record", recordHandler.HandleGetRecords)
+	apiv1.Get("/record/:id", recordHandler.HandleGetRecordByID)
+	apiv1.Post("/record", recordHandler.HandleInsertRecord)
+	apiv1.Put("/record/:id", recordHandler.HandleUpdateRecord)
+	apiv1.Delete("/record/:id", recordHandler.HandleDeleteRecord)
 
 	listen_addr := os.Getenv("LISTEN_ADDR")
 	log.Printf("Starting server on %s", listen_addr)

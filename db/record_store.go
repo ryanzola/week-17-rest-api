@@ -2,14 +2,18 @@ package db
 
 import (
 	"context"
+	"time"
 
 	"github.com/ryanzola/week-17/types"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+type Map map[string]any
+
 type RecordStore interface {
-	GetRecords(context.Context) ([]*types.Record, error)
+	GetRecords(context.Context, types.RecordQueryParams) ([]*types.Record, error)
 	GetRecordByID(context.Context, string) (*types.Record, error)
 	InsertRecord(context.Context, *types.Record) (*types.Record, error)
 	UpdateRecord(context.Context, *types.Record) error
@@ -29,8 +33,39 @@ func NewMongoRecordStore(client *mongo.Client) *MongoRecordStore {
 	}
 }
 
-func (s *MongoRecordStore) GetRecords(ctx context.Context) ([]*types.Record, error) {
-	return nil, nil
+func (s *MongoRecordStore) GetRecords(ctx context.Context, filter types.RecordQueryParams) ([]*types.Record, error) {
+	layout := "2006-01-02"
+	start, err := time.Parse(layout, filter.StartDate)
+	if err != nil {
+		return nil, err
+	}
+
+	end, err := time.Parse(layout, filter.EndDate)
+	if err != nil {
+		return nil, err
+	}
+
+	where := bson.M{
+		"createdAt": bson.M{
+			"$gte": start,
+			"$lte": end,
+		},
+		"totalCount": bson.M{
+			"$gte": filter.MinCount,
+			"$lte": filter.MaxCount,
+		},
+	}
+	resp, err := s.coll.Find(ctx, where)
+	if err != nil {
+		return nil, err
+	}
+
+	var records []*types.Record
+	if err := resp.All(ctx, &records); err != nil {
+		return nil, err
+	}
+
+	return records, nil
 }
 
 func (s *MongoRecordStore) GetRecordByID(ctx context.Context, id string) (*types.Record, error) {

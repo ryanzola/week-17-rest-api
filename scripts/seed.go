@@ -30,9 +30,9 @@ func main() {
 	recordStore := db.NewMongoRecordStore(client)
 
 	for i := 0; i < 200; i++ {
-		key := fmt.Sprintf("key-%d", i)
-		createdAt := time.Now().Add(time.Duration(rand.Intn(100)) * time.Hour)
-		totalCount := rand.Int63n(1000) + 1000
+		key := generateKey(16)
+		createdAt := generateRandomDate(10)
+		totalCount := int64(i) + 1
 
 		inserted := fixtures.AddRecord(recordStore, key, createdAt, totalCount)
 		fmt.Printf("Inserted record: %v\n", inserted)
@@ -47,4 +47,25 @@ func init() {
 
 	db.DBNAME = os.Getenv("MONGO_DB_NAME")
 	db.DBURI = os.Getenv("MONGO_URI")
+}
+
+func generateKey(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	bytes := make([]byte, length) // generate len bytes of random data
+	rand.Read(bytes)
+
+	for i, b := range bytes {
+		bytes[i] = charset[b%byte(len(charset))] // map each byte to a character in the charset
+	}
+
+	return string(bytes)
+}
+
+func generateRandomDate(yearsAgo int) time.Time {
+	now := time.Now()
+	tenYearsAgo := now.AddDate(-yearsAgo, 0, 0)
+	days := now.Sub(tenYearsAgo).Hours() / 24
+
+	randomDays := rand.Intn(int(days))
+	return now.AddDate(0, 0, -randomDays)
 }
