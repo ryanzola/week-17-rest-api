@@ -19,6 +19,11 @@ type ResourceResponse struct {
 	Records []*Record `json:"records"`
 }
 
+type ErrorResponse struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
 type RecordQueryParams struct {
 	StartDate string
 	EndDate   string

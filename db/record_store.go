@@ -14,10 +14,7 @@ type Map map[string]any
 
 type RecordStore interface {
 	GetRecords(context.Context, types.RecordQueryParams) ([]*types.Record, error)
-	GetRecordByID(context.Context, string) (*types.Record, error)
 	InsertRecord(context.Context, *types.Record) (*types.Record, error)
-	UpdateRecord(context.Context, *types.Record) error
-	DeleteRecord(context.Context, string) error
 }
 
 type MongoRecordStore struct {
@@ -68,10 +65,6 @@ func (s *MongoRecordStore) GetRecords(ctx context.Context, filter types.RecordQu
 	return records, nil
 }
 
-func (s *MongoRecordStore) GetRecordByID(ctx context.Context, id string) (*types.Record, error) {
-	return nil, nil
-}
-
 func (s *MongoRecordStore) InsertRecord(ctx context.Context, record *types.Record) (*types.Record, error) {
 	resp, err := s.coll.InsertOne(ctx, record)
 	if err != nil {
@@ -80,12 +73,4 @@ func (s *MongoRecordStore) InsertRecord(ctx context.Context, record *types.Recor
 
 	record.ID = resp.InsertedID.(primitive.ObjectID)
 	return record, nil
-}
-
-func (s *MongoRecordStore) UpdateRecord(ctx context.Context, record *types.Record) error {
-	return nil
-}
-
-func (s *MongoRecordStore) DeleteRecord(ctx context.Context, id string) error {
-	return nil
 }

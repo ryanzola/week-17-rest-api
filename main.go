@@ -2,18 +2,17 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"net/http"
 	"os"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 	"github.com/ryanzola/week-17/api"
 	"github.com/ryanzola/week-17/db"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
-
-var config = fiber.Config{}
 
 func main() {
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(db.DBURI))
@@ -22,22 +21,16 @@ func main() {
 	}
 
 	var (
-		app           = fiber.New(config)
-		apiv1         = app.Group("/api/v1")
 		recordStore   = db.NewMongoRecordStore(client)
 		recordHandler = api.NewRecordHandler(recordStore)
 	)
 
-	// GET /api/v1/hello
-	apiv1.Get("/record", recordHandler.HandleGetRecords)
-	apiv1.Get("/record/:id", recordHandler.HandleGetRecordByID)
-	apiv1.Post("/record", recordHandler.HandleInsertRecord)
-	apiv1.Put("/record/:id", recordHandler.HandleUpdateRecord)
-	apiv1.Delete("/record/:id", recordHandler.HandleDeleteRecord)
+	http.HandleFunc("/api/v1/record", api.Make(recordHandler.HandleGetRecords))
+	http.HandleFunc("/api/v1/in-memory", api.Make(api.HandleMemoryRecords))
 
 	listen_addr := os.Getenv("LISTEN_ADDR")
 	log.Printf("Starting server on %s", listen_addr)
-	app.Listen(listen_addr)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", listen_addr), nil))
 }
 
 func init() {

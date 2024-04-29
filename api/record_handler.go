@@ -1,9 +1,9 @@
 package api
 
 import (
-	"fmt"
+	"encoding/json"
+	"net/http"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/ryanzola/week-17/db"
 	"github.com/ryanzola/week-17/types"
 )
@@ -18,15 +18,43 @@ func NewRecordHandler(store db.RecordStore) *RecordHandler {
 	}
 }
 
-func (h *RecordHandler) HandleGetRecords(c *fiber.Ctx) error {
-	var params types.RecordQueryParams
-	if err := c.BodyParser(&params); err != nil {
-		return err
+func (h *RecordHandler) HandleGetRecords(w http.ResponseWriter, r *http.Request) error {
+	if r.Method != http.MethodGet {
+		resp := types.ErrorResponse{
+			Code:    1,
+			Message: "Method not allowed",
+		}
+
+		return WriteJSON(w, http.StatusMethodNotAllowed, resp)
 	}
 
-	records, err := h.store.GetRecords(c.Context(), params)
+	var params types.RecordQueryParams
+	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+		resp := types.ErrorResponse{
+			Code:    2,
+			Message: err.Error(),
+		}
+
+		return WriteJSON(w, http.StatusBadRequest, resp)
+	}
+
+	if err := ValidateParams(params); err != nil {
+		resp := types.ErrorResponse{
+			Code:    3,
+			Message: err.Error(),
+		}
+
+		return WriteJSON(w, http.StatusBadRequest, resp)
+	}
+
+	records, err := h.store.GetRecords(r.Context(), params)
 	if err != nil {
-		return err
+		resp := types.ErrorResponse{
+			Code:    4,
+			Message: err.Error(),
+		}
+
+		return WriteJSON(w, http.StatusInternalServerError, resp)
 	}
 
 	resp := types.ResourceResponse{
@@ -35,30 +63,5 @@ func (h *RecordHandler) HandleGetRecords(c *fiber.Ctx) error {
 		Records: records,
 	}
 
-	return c.JSON(resp)
-}
-
-func (h *RecordHandler) HandleGetRecordByID(c *fiber.Ctx) error {
-	fmt.Printf("GetRecordByID: %s\n", c.Params("id"))
-	return nil
-}
-
-func (h *RecordHandler) HandleInsertRecord(c *fiber.Ctx) error {
-	var params types.Record
-	if err := c.BodyParser(&params); err != nil {
-		return err // error bad request
-	}
-	fmt.Printf("InsertRecord: %+v\n", params)
-
-	return nil
-}
-
-func (h *RecordHandler) HandleUpdateRecord(c *fiber.Ctx) error {
-	fmt.Printf("UpdateRecord: %s\n", c.Body())
-	return nil
-}
-
-func (h *RecordHandler) HandleDeleteRecord(c *fiber.Ctx) error {
-	fmt.Printf("DeleteRecord: %s\n", c.Params("id"))
-	return nil
+	return WriteJSON(w, http.StatusOK, resp)
 }
