@@ -19,14 +19,17 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer client.Disconnect(context.Background())
 
 	var (
 		recordStore   = db.NewMongoRecordStore(client)
 		recordHandler = api.NewRecordHandler(recordStore)
+		memoryHandler = api.NewMemoryHandler()
 	)
 
-	http.HandleFunc("/api/v1/record", api.Make(recordHandler.HandleGetRecords))
-	http.HandleFunc("/api/v1/in-memory", api.Make(api.HandleMemoryRecords))
+	http.HandleFunc("POST /api/v1/record", api.Make(recordHandler.HandleGetRecords))
+	http.HandleFunc("GET /api/v1/in-memory", memoryHandler.HandleGetMemoryRecords)
+	http.HandleFunc("POST /api/v1/in-memory", memoryHandler.HandlePostMemoryRecord)
 
 	listen_addr := os.Getenv("LISTEN_ADDR")
 	log.Printf("Starting server on %s", listen_addr)

@@ -13,7 +13,7 @@ import (
 type Map map[string]any
 
 type RecordStore interface {
-	GetRecords(context.Context, types.RecordQueryParams) ([]*types.Record, error)
+	GetRecords(context.Context, types.FilterParamsRequest) ([]*types.Record, error)
 	InsertRecord(context.Context, *types.Record) (*types.Record, error)
 }
 
@@ -30,7 +30,7 @@ func NewMongoRecordStore(client *mongo.Client) *MongoRecordStore {
 	}
 }
 
-func (s *MongoRecordStore) GetRecords(ctx context.Context, filter types.RecordQueryParams) ([]*types.Record, error) {
+func (s *MongoRecordStore) GetRecords(ctx context.Context, filter types.FilterParamsRequest) ([]*types.Record, error) {
 	layout := "2006-01-02"
 	start, err := time.Parse(layout, filter.StartDate)
 	if err != nil {

@@ -9,7 +9,7 @@ import (
 	"github.com/ryanzola/week-17/types"
 )
 
-func ValidateParams(params types.RecordQueryParams) error {
+func ValidateParams(params types.FilterParamsRequest) error {
 	var err error
 	if params.StartDate == "" {
 		err = errors.New("missing start date")

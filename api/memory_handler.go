@@ -2,99 +2,56 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
+	"log/slog"
 	"net/http"
 
-	"github.com/ryanzola/week-17/types"
+	"github.com/ryanzola/week-17/db"
 )
 
-var MemoryDB = map[string]types.Memory{}
+type MemoryHandler struct {
+	MemoryDB *db.MemoryDB
+}
 
-func HandleMemoryRecords(w http.ResponseWriter, r *http.Request) error {
-	switch r.Method {
-	case http.MethodGet:
-		return HandleGetMemoryRecords(w, r)
-	case http.MethodPost:
-		return HandlePostMemoryRecord(w, r)
-	default:
-		return HandleMethodNotAllowed(w, r)
+func NewMemoryHandler() *MemoryHandler {
+	return &MemoryHandler{
+		MemoryDB: db.NewMemory(),
 	}
 }
 
-func HandleGetMemoryRecords(w http.ResponseWriter, r *http.Request) error {
+func (h MemoryHandler) HandleGetMemoryRecords(w http.ResponseWriter, r *http.Request) {
 	key := r.URL.Query().Get("key")
 	if key == "" {
-		resp := types.ErrorResponse{
-			Code:    4,
-			Message: "Key is required",
-		}
-
-		return WriteJSON(w, http.StatusBadRequest, resp)
+		err := fmt.Errorf("missing key")
+		slog.Error("cannot get value in memory db", slog.String("error", err.Error()))
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	memory, ok := MemoryDB[key]
-	if !ok {
-		resp := types.ErrorResponse{
-			Code:    3,
-			Message: "Key not found",
-		}
-
-		return WriteJSON(w, http.StatusNotFound, resp)
+	if record, ok := h.MemoryDB.Get(key); ok {
+		WriteJSON(w, http.StatusOK, record)
+		return
 	}
 
-	resp := &types.MemoryResponse{
-		Key:   memory.Key,
-		Value: memory.Value,
-	}
-
-	return WriteJSON(w, http.StatusOK, resp)
+	err := fmt.Errorf("key not found")
+	slog.Error("cannot get value in memory db", slog.String("error", err.Error()))
+	http.Error(w, err.Error(), http.StatusNotFound)
 }
 
-func HandlePostMemoryRecord(w http.ResponseWriter, r *http.Request) error {
-	var params types.MemoryRequestParams
-	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
-		resp := types.ErrorResponse{
-			Code:    2,
-			Message: err.Error(),
-		}
+func (h MemoryHandler) HandlePostMemoryRecord(w http.ResponseWriter, r *http.Request) {
+	var record db.MemoryRecord
+	if err := json.NewDecoder(r.Body).Decode(&record); err != nil {
+		slog.Error("failed to get request body", slog.String("error", err.Error()))
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer r.Body.Close()
 
-		return WriteJSON(w, http.StatusBadRequest, resp)
+	if err := h.MemoryDB.Add(record); err != nil {
+		slog.Error("failed to add a new record", slog.String("error", err.Error()))
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	if params.Key == "" {
-		resp := types.ErrorResponse{
-			Code:    3,
-			Message: "Key is required",
-		}
-
-		return WriteJSON(w, http.StatusBadRequest, resp)
-	}
-
-	if params.Value == "" {
-		resp := types.ErrorResponse{
-			Code:    3,
-			Message: "Value is required",
-		}
-
-		return WriteJSON(w, http.StatusBadRequest, resp)
-	}
-
-	memory := types.Memory(params)
-
-	MemoryDB[params.Key] = memory
-
-	resp := &types.MemoryResponse{
-		Key:   params.Key,
-		Value: params.Value,
-	}
-
-	return WriteJSON(w, http.StatusCreated, resp)
-}
-
-func HandleMethodNotAllowed(w http.ResponseWriter, r *http.Request) error {
-	resp := types.ErrorResponse{
-		Code:    1,
-		Message: "Method not allowed",
-	}
-
-	return WriteJSON(w, http.StatusMethodNotAllowed, resp)
+	WriteJSON(w, http.StatusCreated, record)
 }

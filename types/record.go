@@ -19,14 +19,14 @@ type ResourceResponse struct {
 	Records []*Record `json:"records"`
 }
 
-type ErrorResponse struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-}
-
-type RecordQueryParams struct {
+type FilterParamsRequest struct {
 	StartDate string
 	EndDate   string
 	MinCount  int64
 	MaxCount  int64
+}
+
+type ErrorResponse struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
 }

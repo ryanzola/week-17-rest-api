@@ -19,16 +19,7 @@ func NewRecordHandler(store db.RecordStore) *RecordHandler {
 }
 
 func (h *RecordHandler) HandleGetRecords(w http.ResponseWriter, r *http.Request) error {
-	if r.Method != http.MethodGet {
-		resp := types.ErrorResponse{
-			Code:    1,
-			Message: "Method not allowed",
-		}
-
-		return WriteJSON(w, http.StatusMethodNotAllowed, resp)
-	}
-
-	var params types.RecordQueryParams
+	var params types.FilterParamsRequest
 	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
 		resp := types.ErrorResponse{
 			Code:    2,
